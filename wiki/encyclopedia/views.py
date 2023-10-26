@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.urls import reverse
+
 import markdown2
 from . import util
-
 
 def index(request):
     query = request.GET.get("q")
@@ -33,3 +34,27 @@ def entry(request, name):
             "message": f"Entry for '{name}' not found.",
             "title": name,
         })
+
+def new(request):
+    if request.method == "POST":
+        title = request.POST.get("title").capitalize()
+        if title in util.list_entries():
+            return render(request, "encyclopedia/error.html", {
+                "message": f"The entry '{title}' already exists.",
+                "title": "Error"
+            })
+        content = request.POST.get("content")
+        util.save_entry(title, content)
+        return entry(request, title)
+
+    return render(request, "encyclopedia/new.html", {
+        "method": request.method
+    })
+
+def edit(request):
+    title = request.POST.get("title")
+    md = util.get_entry(title)
+    return render(request, "encyclopedia/edit.html", {
+        "content": md,
+        "title": title
+    })
